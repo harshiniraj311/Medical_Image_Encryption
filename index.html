@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Image Encryption - Multi-layer AES</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    overflow: hidden;
+    padding: 30px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+header h1 {
+    color: #333;
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+
+header p {
+    color: #666;
+    font-size: 1.1em;
+}
+
+.upload-section {
+    background: #f8f9fa;
+    padding: 30px;
+    border-radius: 15px;
+    margin-bottom: 30px;
+}
+
+.upload-section h2 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #555;
+    font-weight: 500;
+}
+
+.form-group input[type="file"],
+.form-group input[type="text"] {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 1em;
+    transition: border-color 0.3s;
+}
+
+.form-group input[type="file"]:focus,
+.form-group input[type="text"]:focus {
+    border-color: #667eea;
+    outline: none;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 14px 30px;
+    border-radius: 8px;
+    font-size: 1.1em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btn-secondary:hover {
+    background: #45a049;
+}
+
+.btn-danger {
+    background: #f44336;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btn-danger:hover {
+    background: #da190b;
+}
+
+.status {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 5px;
+    font-weight: 500;
+}
+
+.status.loading {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status.success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status.error {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.main-content {
+    display: flex;
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.control-panel {
+    flex: 1;
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 15px;
+}
+
+.control-panel h3,
+.control-panel h4 {
+    color: #333;
+    margin: 20px 0 10px;
+}
+
+.control-panel h3:first-child {
+    margin-top: 0;
+}
+
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.button-group button {
+    padding: 8px 16px;
+    border: 2px solid #ddd;
+    background: white;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.9em;
+}
+
+.button-group button:hover {
+    background: #f0f0f0;
+}
+
+.button-group button.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: transparent;
+}
+
+.bitplane-group {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.layer-group {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.display-area {
+    flex: 2;
+    text-align: center;
+}
+
+.image-container {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+#displayImage {
+    max-width: 100%;
+    max-height: 600px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.image-label {
+    margin-top: 15px;
+    font-size: 1.2em;
+    font-weight: 500;
+    color: #555;
+}
+
+.metrics-panel {
+    margin-top: 30px;
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 15px;
+}
+
+.metrics-panel h3 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+#metricsTable {
+    overflow-x: auto;
+}
+
+#metricsTable table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+#metricsTable th,
+#metricsTable td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+}
+
+#metricsTable th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 500;
+}
+
+#metricsTable tr:hover {
+    background: #f5f5f5;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    
+    .main-content {
+        flex-direction: column;
+    }
+    
+    .button-group {
+        justify-content: center;
+    }
+    
+    .bitplane-group {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .layer-group {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Medical Image Encryption</h1>
+        </header>
+
+        <div class="upload-section">
+            <h2>Upload Medical Image</h2>
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="file">Select Image:</label>
+                    <input type="file" id="file" name="file" accept=".png,.jpg,.jpeg,.bmp,.tiff" required>
+                </div>
+                <div class="form-group">
+                    <label for="master_key">Master Key (optional):</label>
+                    <input type="text" id="master_key" name="master_key">
+                </div>
+                <button type="submit" class="btn-primary">Encrypt Image</button>
+            </form>
+            <div id="uploadStatus" class="status"></div>
+        </div>
+
+        <div class="main-content" style="display: none;">
+            <div class="control-panel">
+                <h3>View Options</h3>
+                <div class="button-group">
+                    <button class="btn-view" data-view="original">Original</button>
+                    <button class="btn-view" data-view="encrypted">Encrypted</button>
+                    <button class="btn-view" data-view="decrypted">Decrypted</button>
+                </div>
+                
+                <h4>Bit Planes</h4>
+                <div class="button-group bitplane-group">
+                    <button class="btn-bitplane" data-bit="7">BP7 (MSB)</button>
+                    <button class="btn-bitplane" data-bit="6">BP6</button>
+                    <button class="btn-bitplane" data-bit="5">BP5</button>
+                    <button class="btn-bitplane" data-bit="4">BP4</button>
+                    <button class="btn-bitplane" data-bit="3">BP3</button>
+                    <button class="btn-bitplane" data-bit="2">BP2</button>
+                    <button class="btn-bitplane" data-bit="1">BP1</button>
+                    <button class="btn-bitplane" data-bit="0">BP0 (LSB)</button>
+                </div>
+
+                <h4>Semantic Layers</h4>
+                <div class="button-group layer-group">
+                    <button class="btn-layer" data-layer="layer1_true">L1 Original</button>
+                    <button class="btn-layer" data-layer="layer1_enc">L1 Encrypted</button>
+                    <button class="btn-layer" data-layer="layer1_dec">L1 Decrypted</button>
+                    <button class="btn-layer" data-layer="layer2_true">L2 Original</button>
+                    <button class="btn-layer" data-layer="layer2_enc">L2 Encrypted</button>
+                    <button class="btn-layer" data-layer="layer2_dec">L2 Decrypted</button>
+                    <button class="btn-layer" data-layer="layer3_true">L3 Original</button>
+                    <button class="btn-layer" data-layer="layer3_enc">L3 Encrypted</button>
+                    <button class="btn-layer" data-layer="layer3_dec">L3 Decrypted</button>
+                </div>
+
+                <button id="showMetrics" class="btn-secondary">Show Metrics</button>
+                <button id="resetBtn" class="btn-danger">Reset</button>
+            </div>
+
+            <div class="display-area">
+                <div class="image-container">
+                    <img id="displayImage" src="" alt="Image display">
+                    <p id="imageLabel" class="image-label">Original Image</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="metricsPanel" class="metrics-panel" style="display: none;">
+            <h3>Encryption Metrics</h3>
+            <div id="metricsStatus" class="status" style="margin-bottom: 10px;"></div>
+            <div id="metricsTable"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('file', document.getElementById('file').files[0]);
+            formData.append('master_key', document.getElementById('master_key').value);
+            
+            document.getElementById('uploadStatus').innerHTML = 'Processing...';
+            document.getElementById('uploadStatus').className = 'status loading';
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('uploadStatus').innerHTML = 'Image encrypted successfully!';
+                    document.getElementById('uploadStatus').className = 'status success';
+                    document.querySelector('.main-content').style.display = 'flex';
+                    
+                    // Hide metrics panel when new image is uploaded
+                    document.getElementById('metricsPanel').style.display = 'none';
+                    
+                    // Load original image by default
+                    loadImage('original');
+                } else {
+                    document.getElementById('uploadStatus').innerHTML = ' Error: ' + result.error;
+                    document.getElementById('uploadStatus').className = 'status error';
+                }
+            } catch (error) {
+                document.getElementById('uploadStatus').innerHTML = 'Upload failed';
+                document.getElementById('uploadStatus').className = 'status error';
+            }
+        });
+
+        async function loadImage(type) {
+            let url = `/get_image/${type}`;
+            
+            // Add bit parameter if needed
+            if (type === 'bitplane') {
+                const bit = document.querySelector('.btn-bitplane.active')?.dataset.bit || 7;
+                url = `/get_image/bitplane?bit=${bit}`;
+            }
+            
+            try {
+                const response = await fetch(url);
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('displayImage').src = result.image;
+                    
+                    // Update label
+                    let label = type.charAt(0).toUpperCase() + type.slice(1);
+                    if (type === 'bitplane') {
+                        const bit = document.querySelector('.btn-bitplane.active')?.dataset.bit;
+                        label = `Bit Plane ${bit}`;
+                    } else if (type.includes('layer')) {
+                        const parts = type.split('_');
+                        label = `Layer ${parts[0].slice(-1)} ${parts[1].charAt(0).toUpperCase() + parts[1].slice(1)}`;
+                    }
+                    document.getElementById('imageLabel').textContent = label;
+                }
+            } catch (error) {
+                console.error('Error loading image:', error);
+            }
+        }
+
+        // View buttons
+        document.querySelectorAll('.btn-view').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.btn-view').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                loadImage(btn.dataset.view);
+            });
+        });
+
+        // Bit plane buttons
+        document.querySelectorAll('.btn-bitplane').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.btn-bitplane').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                loadImage('bitplane');
+            });
+        });
+
+        // Layer buttons
+        document.querySelectorAll('.btn-layer').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.btn-layer').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                loadImage(btn.dataset.layer);
+            });
+        });
+
+        // Show metrics with loading status
+        document.getElementById('showMetrics').addEventListener('click', async () => {
+            const metricsStatus = document.getElementById('metricsStatus');
+            const metricsPanel = document.getElementById('metricsPanel');
+            const metricsTable = document.getElementById('metricsTable');
+            
+            // Show loading status
+            metricsPanel.style.display = 'block';
+            metricsStatus.innerHTML = 'Processing metrics...';
+            metricsStatus.className = 'status loading';
+            metricsTable.innerHTML = ''; // Clear previous results
+            
+            try {
+                const response = await fetch('/get_metrics');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const metrics = result.metrics;
+                    let html = '<table><tr><th>Layer</th><th>Entropy</th><th>Corr H</th><th>Corr V</th><th>Corr D</th><th>NPCR</th><th>UACI</th></tr>';
+                    
+                    for (const [layer, data] of Object.entries(metrics)) {
+                        html += `<tr>
+                            <td>${layer}</td>
+                            <td>${data.entropy}</td>
+                            <td>${data.corr_h}</td>
+                            <td>${data.corr_v}</td>
+                            <td>${data.corr_d}</td>
+                            <td>${data.npcr}%</td>
+                            <td>${data.uaci}%</td>
+                        </tr>`;
+                    }
+                    
+                    html += '</table>';
+                    metricsTable.innerHTML = html;
+                    metricsStatus.innerHTML = 'Metrics calculated successfully';
+                    metricsStatus.className = 'status success';
+                } else {
+                    metricsStatus.innerHTML = 'Error: ' + result.error;
+                    metricsStatus.className = 'status error';
+                }
+            } catch (error) {
+                metricsStatus.innerHTML = 'Error loading metrics';
+                metricsStatus.className = 'status error';
+                console.error('Error loading metrics:', error);
+            }
+        });
+
+        // Reset
+        document.getElementById('resetBtn').addEventListener('click', async () => {
+            await fetch('/reset');
+            document.querySelector('.main-content').style.display = 'none';
+            document.getElementById('metricsPanel').style.display = 'none';
+            document.getElementById('uploadStatus').innerHTML = '';
+            document.getElementById('uploadForm').reset();
+            document.querySelectorAll('.btn-view, .btn-bitplane, .btn-layer').forEach(b => b.classList.remove('active'));
+            
+            // Clear metrics
+            document.getElementById('metricsTable').innerHTML = '';
+            document.getElementById('metricsStatus').innerHTML = '';
+        });
+
+        // Set original as default active
+        document.querySelector('[data-view="original"]').classList.add('active');
+    </script>
+</body>
+</html>
